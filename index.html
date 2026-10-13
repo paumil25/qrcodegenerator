@@ -62,9 +62,10 @@ details{margin:6px 0}summary{cursor:pointer;font-weight:600}
 <div class="radio" role="radiogroup" aria-label="Input mode">
 <label><input type="radio" name="mode" value="url" checked> URL mode</label>
 <label><input type="radio" name="mode" value="text"> Plain-text mode</label>
+<label><input type="radio" name="mode" value="upi"> UPI ID</label>
 </div>
 <label for="inp">Website link or text</label>
-<textarea id="inp" rows="3" placeholder="https://example.com  (Enter = generate, Shift+Enter = new line)"></textarea>
+<textarea id="inp" rows="3" placeholder="https://example.com or a UPI ID like name@bank  (Enter = generate, Shift+Enter = new line)"></textarea>
 <div class="row">
 <button class="p" id="gen">Generate QR Code</button>
 <button id="copy">Copy Input</button>
@@ -75,6 +76,7 @@ details{margin:6px 0}summary{cursor:pointer;font-weight:600}
 <div class="radio" role="radiogroup" aria-label="Bulk input mode">
 <label><input type="radio" name="bmode" value="url" checked> URL mode</label>
 <label><input type="radio" name="bmode" value="text"> Plain-text mode</label>
+<label><input type="radio" name="bmode" value="upi"> UPI ID</label>
 </div>
 <label for="bulk">Paste one link or text entry per line (up to 100 per run)</label>
 <textarea id="bulk" rows="9" placeholder="https://example.com/one&#10;https://example.com/two"></textarea>
@@ -146,6 +148,7 @@ details{margin:6px 0}summary{cursor:pointer;font-weight:600}
 <details open><summary>Generate a single QR code</summary><p>Type or paste a link or text, choose URL or Plain-text mode, and click <b>Generate QR Code</b> (or press Enter). Add an optional caption and choose its size and colour; the preview updates instantly.</p></details>
 <details><summary>Generate many QR codes</summary><p>Open the <b>Bulk QR Codes</b> tab, paste one entry per line (up to 100) and click <b>Generate All QR Codes</b>. Edit captions per card, or use the common caption. Untick cards you do not want exported.</p></details>
 <details><summary>Download and print</summary><p><b>Download PNG</b> saves a high-resolution image with the caption. <b>Download PDF</b> saves an A4 page. For bulk, use <b>Download All as ZIP</b> (separate PNGs plus an index.csv) or <b>Download Bulk PDF</b> (one per page or 9 per page). <b>Print QR Code</b> prints only the QR code and caption.</p></details>
+<details><summary>UPI payment QR codes</summary><p>Type a UPI ID such as <b>name@bank</b> (in URL mode it is detected automatically, or choose <b>UPI ID</b> mode). The QR code opens as a payment request in UPI apps (GPay, PhonePe, Paytm, BHIM) and the payer enters the amount. Always test-scan and confirm the payee name before sharing.</p></details>
 <details><summary>Scanning tips</summary><p>Keep the white margin around the code, print at least 2 cm wide, use high contrast, and test-scan with a phone before distributing.</p></details>
 <details><summary>Privacy</summary><p>Nothing is uploaded. The file makes no network requests, has no analytics and stores nothing permanently. History disappears when you refresh the page.</p></details>
 </section>
@@ -212,8 +215,12 @@ const S={single:null,items:[],hist:[],busy:false};
 function status(m,err){const s=$("status");s.textContent=m;s.className=err?"err":"";}
 const val=n=>document.querySelector(`input[name=${n}]:checked`).value;
 const fmtNow=()=>{let pt=Math.round(+$("fs").value);if(!(pt>=14))pt=14;if(pt>24)pt=24;return{pt,color:$("fc").value,bold:$("fb").checked};};
+const UPI_RE=/^[a-zA-Z0-9][a-zA-Z0-9._-]{1,255}@[a-zA-Z][a-zA-Z0-9]{1,63}$/,upiLink=id=>"upi://pay?pa="+id+"&cu=INR";
 function normalize(raw,mode){const t=raw.trim();if(!t)throw new Error("Entry is empty.");
- if(mode!=="url")return t;let u=t;if(!/^[a-z][a-z0-9+.-]*:/i.test(u))u="https://"+u;
+ if(mode==="upi"){if(!UPI_RE.test(t))throw new Error("Not a valid UPI ID (expected format: name@bank).");return upiLink(t);}
+ if(mode!=="url")return t;
+ if(UPI_RE.test(t))return upiLink(t);
+ let u=t;if(!/^[a-z][a-z0-9+.-]*:/i.test(u))u="https://"+u;
  let o;try{o=new URL(u);}catch(e){throw new Error("Not a valid URL.");}
  if(/^https?:$/.test(o.protocol)&&!(o.hostname.includes(".")||o.hostname==="localhost"))throw new Error("Not a valid URL (missing domain).");
  return u;}
